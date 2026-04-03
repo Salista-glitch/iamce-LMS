@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { discussionMessageSchema } from '@/lib/validations';
+import { USE_MOCK_DATA, mockCourses, mockEnrollments, mockDiscussionMessages, mockUsers } from '@/lib/mock-data';
 import type { Course, DiscussionMessage } from '@/types';
 
 // Helper to check if user is course instructor
 async function isInstructorOfCourse(courseId: number, userId: number): Promise<boolean> {
+  if (USE_MOCK_DATA) {
+    const course = mockCourses.find((c) => c.id === courseId);
+    return course?.instructor_id === userId;
+  }
   const course = await queryOne<Course>(
     'SELECT instructor_id FROM courses WHERE id = ?',
     [courseId]
@@ -15,6 +20,11 @@ async function isInstructorOfCourse(courseId: number, userId: number): Promise<b
 
 // Helper to check if user is enrolled in course
 async function isEnrolledInCourse(courseId: number, userId: number): Promise<boolean> {
+  if (USE_MOCK_DATA) {
+    return mockEnrollments.some(
+      (e) => e.course_id === courseId && e.user_id === userId && e.status === 'active'
+    );
+  }
   const enrollment = await queryOne<{ id: number }>(
     'SELECT id FROM enrollments WHERE course_id = ? AND user_id = ? AND status = ?',
     [courseId, userId, 'active']
@@ -53,6 +63,21 @@ export async function GET(
 
     // Get messages - don't show deleted messages unless admin/instructor
     const showDeleted = isInstructor || isAdmin;
+
+    if (USE_MOCK_DATA) {
+      let messages = mockDiscussionMessages.filter((m) => m.course_id === courseId);
+      if (!showDeleted) {
+        messages = messages.filter((m) => !m.is_deleted);
+      }
+      messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      return NextResponse.json({
+        success: true,
+        data: { 
+          messages,
+          isInstructor: isInstructor || isAdmin
+        },
+      });
+    }
     
     const messages = await query<DiscussionMessage>(
       `SELECT 
@@ -123,6 +148,27 @@ export async function POST(
     }
 
     const { message } = result.data;
+
+    if (USE_MOCK_DATA) {
+      const userInfo = mockUsers.find((u) => u.id === user.userId);
+      const newMessage: DiscussionMessage = {
+        id: mockDiscussionMessages.length + 1,
+        course_id: courseId,
+        user_id: user.userId,
+        message,
+        is_flagged: false,
+        is_deleted: false,
+        created_at: new Date(),
+        user_name: userInfo?.name,
+        user_avatar: userInfo?.avatar_url,
+        user_role: userInfo?.role,
+      };
+      mockDiscussionMessages.push(newMessage);
+      return NextResponse.json({
+        success: true,
+        data: { message: newMessage },
+      });
+    }
 
     const insertResult = await execute(
       `INSERT INTO course_discussions (course_id, user_id, message) VALUES (?, ?, ?)`,

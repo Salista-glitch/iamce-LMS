@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne, execute } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { courseMaterialSchema } from '@/lib/validations';
+import { USE_MOCK_DATA, mockCourses, mockEnrollments, mockCourseMaterials, mockUsers } from '@/lib/mock-data';
 import type { Course, CourseMaterial } from '@/types';
 
 // Helper to check if user is course instructor
 async function isInstructorOfCourse(courseId: number, userId: number): Promise<boolean> {
+  if (USE_MOCK_DATA) {
+    const course = mockCourses.find((c) => c.id === courseId);
+    return course?.instructor_id === userId;
+  }
   const course = await queryOne<Course>(
     'SELECT instructor_id FROM courses WHERE id = ?',
     [courseId]
@@ -15,6 +20,11 @@ async function isInstructorOfCourse(courseId: number, userId: number): Promise<b
 
 // Helper to check if user is enrolled in course
 async function isEnrolledInCourse(courseId: number, userId: number): Promise<boolean> {
+  if (USE_MOCK_DATA) {
+    return mockEnrollments.some(
+      (e) => e.course_id === courseId && e.user_id === userId && e.status === 'active'
+    );
+  }
   const enrollment = await queryOne<{ id: number }>(
     'SELECT id FROM enrollments WHERE course_id = ? AND user_id = ? AND status = ?',
     [courseId, userId, 'active']
@@ -53,6 +63,17 @@ export async function GET(
 
     // Instructors and admins see all materials, students only see active ones
     const showInactive = isInstructor || isAdmin;
+
+    if (USE_MOCK_DATA) {
+      let materials = mockCourseMaterials.filter((m) => m.course_id === courseId);
+      if (!showInactive) {
+        materials = materials.filter((m) => m.is_active);
+      }
+      return NextResponse.json({
+        success: true,
+        data: { materials },
+      });
+    }
     
     const materials = await query<CourseMaterial>(
       `SELECT 
@@ -118,6 +139,29 @@ export async function POST(
     }
 
     const { title, type, url, content, sort_order } = result.data;
+
+    if (USE_MOCK_DATA) {
+      const userInfo = mockUsers.find((u) => u.id === user.userId);
+      const newMaterial: CourseMaterial = {
+        id: mockCourseMaterials.length + 1,
+        course_id: courseId,
+        title,
+        type,
+        url: url || undefined,
+        content: content || null,
+        sort_order: sort_order ?? mockCourseMaterials.filter((m) => m.course_id === courseId).length + 1,
+        created_at: new Date(),
+        uploaded_by: user.userId,
+        is_active: true,
+        uploader_name: userInfo?.name,
+      };
+      mockCourseMaterials.push(newMaterial);
+      return NextResponse.json({
+        success: true,
+        data: { material: newMaterial },
+        message: 'Material uploaded successfully',
+      });
+    }
 
     // Get current max sort_order for this course
     const maxOrder = await queryOne<{ max_order: number }>(

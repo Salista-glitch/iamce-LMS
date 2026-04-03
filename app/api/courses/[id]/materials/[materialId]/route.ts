@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryOne, execute } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { USE_MOCK_DATA, mockCourses, mockCourseMaterials } from '@/lib/mock-data';
 import type { Course, CourseMaterial } from '@/types';
 
 // Helper to check if user is course instructor
 async function isInstructorOfCourse(courseId: number, userId: number): Promise<boolean> {
+  if (USE_MOCK_DATA) {
+    const course = mockCourses.find((c) => c.id === courseId);
+    return course?.instructor_id === userId;
+  }
   const course = await queryOne<Course>(
     'SELECT instructor_id FROM courses WHERE id = ?',
     [courseId]
@@ -19,13 +24,31 @@ export async function GET(
 ) {
   try {
     const { id, materialId } = await params;
+    const courseId = parseInt(id);
+    const matId = parseInt(materialId);
+
+    if (USE_MOCK_DATA) {
+      const material = mockCourseMaterials.find(
+        (m) => m.id === matId && m.course_id === courseId
+      );
+      if (!material) {
+        return NextResponse.json(
+          { success: false, error: 'Material not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        data: { material },
+      });
+    }
     
     const material = await queryOne<CourseMaterial>(
       `SELECT cm.*, u.name as uploader_name, u.avatar_url as uploader_avatar
        FROM course_materials cm
        LEFT JOIN users u ON cm.uploaded_by = u.id
        WHERE cm.id = ? AND cm.course_id = ?`,
-      [parseInt(materialId), parseInt(id)]
+      [matId, courseId]
     );
 
     if (!material) {
@@ -57,6 +80,7 @@ export async function PATCH(
     const user = await getCurrentUser();
     const { id, materialId } = await params;
     const courseId = parseInt(id);
+    const matId = parseInt(materialId);
 
     if (!user) {
       return NextResponse.json(
@@ -77,6 +101,32 @@ export async function PATCH(
 
     const body = await request.json();
     const { is_active, title, url } = body;
+
+    if (USE_MOCK_DATA) {
+      const materialIndex = mockCourseMaterials.findIndex(
+        (m) => m.id === matId && m.course_id === courseId
+      );
+      if (materialIndex === -1) {
+        return NextResponse.json(
+          { success: false, error: 'Material not found' },
+          { status: 404 }
+        );
+      }
+      if (typeof is_active === 'boolean') {
+        mockCourseMaterials[materialIndex].is_active = is_active;
+      }
+      if (title) {
+        mockCourseMaterials[materialIndex].title = title;
+      }
+      if (url !== undefined) {
+        mockCourseMaterials[materialIndex].url = url;
+      }
+      return NextResponse.json({
+        success: true,
+        data: { material: mockCourseMaterials[materialIndex] },
+        message: is_active === false ? 'Material removed' : 'Material updated',
+      });
+    }
 
     // Build dynamic update query
     const updates: string[] = [];
@@ -102,7 +152,7 @@ export async function PATCH(
       );
     }
 
-    values.push(parseInt(materialId), courseId);
+    values.push(matId, courseId);
 
     await execute(
       `UPDATE course_materials SET ${updates.join(', ')} WHERE id = ? AND course_id = ?`,
@@ -117,7 +167,7 @@ export async function PATCH(
 
     const material = await queryOne<CourseMaterial>(
       'SELECT * FROM course_materials WHERE id = ?',
-      [parseInt(materialId)]
+      [matId]
     );
 
     return NextResponse.json({
@@ -143,6 +193,7 @@ export async function DELETE(
     const user = await getCurrentUser();
     const { id, materialId } = await params;
     const courseId = parseInt(id);
+    const matId = parseInt(materialId);
 
     if (!user) {
       return NextResponse.json(
@@ -161,9 +212,22 @@ export async function DELETE(
       );
     }
 
+    if (USE_MOCK_DATA) {
+      const materialIndex = mockCourseMaterials.findIndex(
+        (m) => m.id === matId && m.course_id === courseId
+      );
+      if (materialIndex !== -1) {
+        mockCourseMaterials.splice(materialIndex, 1);
+      }
+      return NextResponse.json({
+        success: true,
+        message: 'Material deleted permanently',
+      });
+    }
+
     await execute(
       'DELETE FROM course_materials WHERE id = ? AND course_id = ?',
-      [parseInt(materialId), courseId]
+      [matId, courseId]
     );
 
     // Update course file_count
