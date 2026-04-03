@@ -49,6 +49,28 @@ export interface CourseMaterial {
   content?: string | null;
   sort_order: number;
   created_at: Date;
+  uploaded_by?: number | null;
+  is_active: boolean;
+  updated_at?: Date;
+  // Joined fields
+  uploader_name?: string;
+  uploader_avatar?: string;
+}
+
+// Discussion types
+export interface DiscussionMessage {
+  id: number;
+  course_id: number;
+  user_id: number;
+  message: string;
+  is_flagged: boolean;
+  is_deleted: boolean;
+  created_at: Date;
+  updated_at?: Date;
+  // Joined fields
+  user_name?: string;
+  user_avatar?: string | null;
+  user_role?: UserRole;
 }
 
 // Enrollment types
