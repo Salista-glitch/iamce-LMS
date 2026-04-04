@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 const mainNavItems = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
   { title: 'Classroom', href: '/courses', icon: GraduationCap },
+  { title: 'My Courses', href: '/my-courses', icon: BookOpen },
   { title: 'Live Lessons', href: '/live-lessons', icon: Video },
   { title: 'Recorded Lessons', href: '/recorded', icon: Film },
   { title: 'Video Library', href: '/library', icon: FolderOpen },

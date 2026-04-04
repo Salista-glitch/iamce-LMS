@@ -51,6 +51,11 @@ export const lessonSchema = z.object({
   meeting_url: z.string().url().optional(),
 });
 
+// Discussion message validation
+export const discussionMessageSchema = z.object({
+  message: z.string().min(1, 'Message cannot be empty').max(2000, 'Message is too long'),
+});
+
 // Type exports
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -59,3 +64,4 @@ export type EnrollmentInput = z.infer<typeof enrollmentSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
 export type CourseMaterialInput = z.infer<typeof courseMaterialSchema>;
 export type LessonInput = z.infer<typeof lessonSchema>;
+export type DiscussionMessageInput = z.infer<typeof discussionMessageSchema>;

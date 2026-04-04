@@ -6,7 +6,7 @@ import { CourseCard } from '@/components/dashboard/course-card';
 import { CalendarWidget } from '@/components/dashboard/calendar-widget';
 import { ProfileCard } from '@/components/dashboard/profile-card';
 import { RemindersWidget } from '@/components/dashboard/reminders-widget';
-import { LessonsTable } from '@/components/dashboard/lessons-table';
+import { RecentContent } from '@/components/dashboard/recent-content';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -54,36 +54,6 @@ const sampleCourses = [
       { name: 'Ivy' },
     ],
     variant: 'coral' as const,
-  },
-];
-
-const sampleLessons = [
-  {
-    id: 1,
-    className: 'A1',
-    teacherName: 'Bernard Carr',
-    members: [{ name: 'Alice' }, { name: 'Bob' }],
-    startingDate: '12.07.2022',
-    material: 'Download',
-    paymentStatus: 'done' as const,
-  },
-  {
-    id: 2,
-    className: 'A1',
-    teacherName: 'Henry Poole',
-    members: [{ name: 'Charlie' }, { name: 'Diana' }, { name: 'Eve' }],
-    startingDate: '17.07.2022',
-    material: 'Download',
-    paymentStatus: 'pending' as const,
-  },
-  {
-    id: 3,
-    className: 'A1',
-    teacherName: 'Helena Lowe',
-    members: [{ name: 'Frank' }, { name: 'Grace' }],
-    startingDate: '22.07.2022',
-    material: 'Download',
-    paymentStatus: 'done' as const,
   },
 ];
 
@@ -158,8 +128,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Lessons Table */}
-        <LessonsTable lessons={sampleLessons} />
+        {/* Recent Content */}
+        <RecentContent />
       </div>
 
       {/* Right Sidebar */}

@@ -6,35 +6,64 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
   Users,
   FileText,
   Clock,
-  Play,
-  Download,
   BookOpen,
+  MessageSquare,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import type { Course } from '@/types';
+import type { Course, CourseMaterial, Enrollment } from '@/types';
+import { ContentUploadForm } from '@/components/dashboard/content-upload-form';
+import { MaterialsList } from '@/components/dashboard/materials-list';
+import { DiscussionRoom } from '@/components/dashboard/discussion-room';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface CourseDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function CourseDetailPage({ params }: CourseDetailPageProps) {
-  const { id } = params;
+  const { id } = use(params);
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isEnrolling, setIsEnrolling] = useState(false);
 
-  const { data, isLoading, error } = useSWR<{ success: boolean; data: { course: Course } }>(
+  // Fetch course details
+  const { data: courseData, isLoading: courseLoading } = useSWR<{ 
+    success: boolean; 
+    data: { course: Course } 
+  }>(
     `/api/courses/${id}`,
+    fetcher
+  );
+
+  // Fetch course materials
+  const { 
+    data: materialsData, 
+    isLoading: materialsLoading,
+    mutate: refreshMaterials 
+  } = useSWR<{ 
+    success: boolean; 
+    data: { materials: CourseMaterial[] } 
+  }>(
+    user ? `/api/courses/${id}/materials` : null,
+    fetcher
+  );
+
+  // Check if user is enrolled
+  const { data: enrollmentData } = useSWR<{
+    success: boolean;
+    data: { enrollments: Enrollment[] };
+  }>(
+    user ? '/api/enrollments' : null,
     fetcher
   );
 
@@ -63,7 +92,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     }
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || courseLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Spinner className="h-8 w-8 text-primary" />
@@ -75,7 +104,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     return null;
   }
 
-  if (error || !data?.success || !data?.data?.course) {
+  if (!courseData?.success || !courseData?.data?.course) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center">
         <p className="text-lg font-medium text-muted-foreground">Course not found</p>
@@ -89,16 +118,13 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     );
   }
 
-  const course = data.data.course;
-
-  // Sample materials - in production these would come from the API
-  const materials = [
-    { id: 1, title: 'Introduction to the Course', type: 'video', duration: '15 min' },
-    { id: 2, title: 'Chapter 1: Getting Started', type: 'document', pages: 12 },
-    { id: 3, title: 'Practice Exercises', type: 'assignment', due: '3 days' },
-    { id: 4, title: 'Chapter 2: Core Concepts', type: 'video', duration: '25 min' },
-    { id: 5, title: 'Supplementary Reading', type: 'document', pages: 8 },
-  ];
+  const course = courseData.data.course;
+  const materials = materialsData?.data?.materials || [];
+  const isInstructor = course.instructor_id === user.id || user.role === 'admin';
+  const isEnrolled = enrollmentData?.data?.enrollments?.some(
+    (e) => e.course_id === parseInt(id)
+  ) || false;
+  const canAccessCourse = isInstructor || isEnrolled || user.role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -130,7 +156,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               </div>
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-white/70" />
-                <span>{course.file_count} materials</span>
+                <span>{materials.filter(m => m.is_active !== false).length} materials</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-white/70" />
@@ -154,66 +180,91 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90"
-              onClick={handleEnroll}
-              disabled={isEnrolling}
-            >
-              {isEnrolling && <Spinner className="mr-2 h-4 w-4" />}
-              Enroll Now
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10"
-            >
-              <BookOpen className="mr-2 h-4 w-4" />
-              Preview Course
-            </Button>
+            {!canAccessCourse ? (
+              <Button
+                size="lg"
+                className="bg-white text-primary hover:bg-white/90"
+                onClick={handleEnroll}
+                disabled={isEnrolling}
+              >
+                {isEnrolling && <Spinner className="mr-2 h-4 w-4" />}
+                Enroll Now
+              </Button>
+            ) : (
+              <Badge className="bg-white/20 text-white">
+                {isInstructor ? 'Your Course' : 'Enrolled'}
+              </Badge>
+            )}
+            {isInstructor && (
+              <ContentUploadForm 
+                courseId={parseInt(id)} 
+                onSuccess={refreshMaterials} 
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Course Materials */}
-      <div className="rounded-xl border bg-card">
-        <div className="border-b p-4">
-          <h2 className="text-lg font-semibold">Course Materials</h2>
-        </div>
-        <div className="divide-y">
-          {materials.map((material) => (
-            <div
-              key={material.id}
-              className="flex items-center justify-between p-4 hover:bg-muted/50"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  {material.type === 'video' ? (
-                    <Play className="h-5 w-5 text-primary" />
-                  ) : material.type === 'document' ? (
-                    <FileText className="h-5 w-5 text-primary" />
-                  ) : (
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium">{material.title}</p>
+      {/* Course Content Tabs */}
+      {canAccessCourse ? (
+        <Tabs defaultValue="materials" className="w-full">
+          <TabsList>
+            <TabsTrigger value="materials" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Materials
+            </TabsTrigger>
+            <TabsTrigger value="discussions" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Discussions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="materials" className="mt-4">
+            <div className="rounded-xl border bg-card">
+              <div className="flex items-center justify-between border-b p-4">
+                <h2 className="text-lg font-semibold">Course Materials</h2>
+                {isInstructor && (
                   <p className="text-sm text-muted-foreground">
-                    {material.type === 'video'
-                      ? material.duration
-                      : material.type === 'document'
-                      ? `${material.pages} pages`
-                      : `Due in ${material.due}`}
+                    {materials.filter(m => !m.is_active).length > 0 && 
+                      `${materials.filter(m => !m.is_active).length} hidden`}
                   </p>
-                </div>
+                )}
               </div>
-              <Button variant="ghost" size="sm">
-                <Download className="h-4 w-4" />
-              </Button>
+              {materialsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Spinner className="h-6 w-6" />
+                </div>
+              ) : (
+                <MaterialsList
+                  materials={materials}
+                  courseId={parseInt(id)}
+                  isInstructor={isInstructor}
+                  onUpdate={refreshMaterials}
+                />
+              )}
             </div>
-          ))}
+          </TabsContent>
+
+          <TabsContent value="discussions" className="mt-4">
+            <DiscussionRoom 
+              courseId={parseInt(id)} 
+              isInstructor={isInstructor}
+            />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <div className="rounded-xl border bg-card p-8 text-center">
+          <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">Enroll to Access Content</h3>
+          <p className="mt-2 text-muted-foreground">
+            Enroll in this course to access materials and discussions.
+          </p>
+          <Button className="mt-4" onClick={handleEnroll} disabled={isEnrolling}>
+            {isEnrolling && <Spinner className="mr-2 h-4 w-4" />}
+            Enroll Now
+          </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

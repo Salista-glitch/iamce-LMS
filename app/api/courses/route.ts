@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'published';
+    const instructorId = searchParams.get('instructor');
     
     // Use mock data if no database is connected
     if (USE_MOCK_DATA) {
@@ -21,6 +22,11 @@ export async function GET(request: NextRequest) {
         ...course,
         enrolled_count: mockEnrollments.filter((e) => e.course_id === course.id).length,
       }));
+      
+      // Filter by instructor if specified
+      if (instructorId) {
+        courses = courses.filter((c) => c.instructor_id === parseInt(instructorId));
+      }
       
       // Filter by status for non-admin users
       if (!user || !canManageCourses(user.role)) {
@@ -46,14 +52,25 @@ export async function GET(request: NextRequest) {
     `;
     
     const params: (string | number)[] = [];
+    const conditions: string[] = [];
+    
+    // Filter by instructor if specified
+    if (instructorId) {
+      conditions.push('c.instructor_id = ?');
+      params.push(parseInt(instructorId));
+    }
     
     // Non-authenticated users or students only see published courses
     if (!user || !canManageCourses(user.role)) {
-      sql += ' WHERE c.status = ?';
+      conditions.push('c.status = ?');
       params.push('published');
     } else if (status !== 'all') {
-      sql += ' WHERE c.status = ?';
+      conditions.push('c.status = ?');
       params.push(status);
+    }
+    
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
     
     sql += ' ORDER BY c.created_at DESC';
