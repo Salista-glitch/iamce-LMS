@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BookOpen, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
@@ -40,13 +41,22 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <BookOpen className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Learnthru</h1>
-          <p className="text-muted-foreground">Sign in to your account</p>
-        </div>
+        {/* Logo */}
+<div className="flex flex-col items-center gap-4 mb-2">
+  <div className="relative h-20 w-20"> {/* Adjusted size for better visual gravity */}
+    <Image 
+      src="/logo2.png" 
+      alt="IAMCE Logo"
+      fill // This fills the parent div while maintaining aspect ratio
+      priority
+      className="object-contain"
+    />
+  </div>
+  <div className="text-center">
+    <h1 className="text-2xl font-bold tracking-tight text-foreground uppercase">IAMCE</h1>
+    <p className="text-muted-foreground text-sm">Sign in to your account</p>
+  </div>
+</div>
 
         {/* Form Card */}
         <div className="rounded-xl border bg-card p-8 shadow-sm">

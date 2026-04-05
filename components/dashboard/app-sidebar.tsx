@@ -29,14 +29,15 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 const mainNavItems = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
   { title: 'Classroom', href: '/courses', icon: GraduationCap },
   { title: 'My Courses', href: '/my-courses', icon: BookOpen },
-  { title: 'Live Lessons', href: '/live-lessons', icon: Video },
-  { title: 'Recorded Lessons', href: '/recorded', icon: Film },
-  { title: 'Video Library', href: '/library', icon: FolderOpen },
+  // { title: 'Live Lessons', href: '/live-lessons', icon: Video },
+  // { title: 'Recorded Lessons', href: '/recorded', icon: Film },
+  // { title: 'Video Library', href: '/library', icon: FolderOpen },
 ];
 
 const adminNavItems = [
@@ -57,10 +58,17 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-6">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <BookOpen className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center ">
+            <Image
+                        src="/logo2.png"
+                        alt="Stack of books illustration"
+                        width={180}
+                        height={120}
+                        className="object-contain"
+                        priority
+                      />
           </div>
-          <span className="text-xl font-bold text-foreground">Learnthru</span>
+          <span className="text-xl font-bold text-foreground">IAMCE</span>
         </Link>
       </SidebarHeader>
 
@@ -128,7 +136,7 @@ export function AppSidebar() {
             </div>
             <p className="mb-1 text-sm font-semibold text-foreground">Need help?</p>
             <p className="text-xs text-muted-foreground">
-              Do you have any problem while using the Learnthru?
+              Do you have any problem while using the IAMCE app?
             </p>
           </div>
         </div>

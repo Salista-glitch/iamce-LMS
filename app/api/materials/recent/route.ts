@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
-
+    const rawLimit = parseInt(searchParams.get('limit') || '10');
+    const limit = !rawLimit || rawLimit < 1 ? 10 : rawLimit;
     // Get recent materials from courses the user is enrolled in, teaches, or all for admin
     let sql = `
       SELECT 
@@ -58,13 +58,12 @@ export async function GET(request: NextRequest) {
         SELECT 1 FROM enrollments e 
         WHERE e.course_id = c.id 
         AND e.user_id = ? 
-        AND e.status = 'active'
+        
       )`;
       params.push(user.userId);
     }
 
-    sql += ` ORDER BY cm.created_at DESC LIMIT ?`;
-    params.push(limit);
+    sql += ` ORDER BY cm.created_at DESC LIMIT ${limit}`;
 
     const materials = await query<RecentMaterial>(sql, params);
 

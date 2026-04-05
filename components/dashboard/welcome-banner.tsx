@@ -16,21 +16,21 @@ export function WelcomeBanner({ userName }: WelcomeBannerProps) {
             Welcome back, {userName}!
           </h1>
           <p className="mt-2 text-muted-foreground">
-            New French speaking classes are available.{' '}
+            New Low-Resource Classroom modules are now available.{' '}
             <span className="hidden sm:inline">
-              Etudier en France for B1 and B2 levels.{' '}
+              Learn to build your own Montessori environment using local materials.{' '}
             </span>
             <a href="/courses" className="font-medium text-primary hover:underline">
               Learn more
             </a>
           </p>
           <Button className="mt-4 rounded-full px-6" size="lg">
-            Buy Lesson
+            Explore Module
           </Button>
         </div>
         <div className="hidden lg:block">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/your%20online%20courses%20_%20e-Learning%20Dashboard%20Learnthru_%20Manage-Je37w51GgVJrxQLkIpwWoMRFy1kkCM.jpg"
+            src="/logo2.png"
             alt="Stack of books illustration"
             width={180}
             height={120}

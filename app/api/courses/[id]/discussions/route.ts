@@ -26,8 +26,8 @@ async function isEnrolledInCourse(courseId: number, userId: number): Promise<boo
     );
   }
   const enrollment = await queryOne<{ id: number }>(
-    'SELECT id FROM enrollments WHERE course_id = ? AND user_id = ? AND status = ?',
-    [courseId, userId, 'active']
+    `SELECT id FROM enrollments WHERE course_id = ? AND user_id = ? AND status IN ('active', 'pending')`,
+    [courseId, userId]
   );
   return !!enrollment;
 }

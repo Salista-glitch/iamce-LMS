@@ -27,11 +27,11 @@ import { DiscussionRoom } from '@/components/dashboard/discussion-room';
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface CourseDetailPageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default function CourseDetailPage({ params }: CourseDetailPageProps) {
-  const { id } = use(params);
+  const { id } = params;
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [isEnrolling, setIsEnrolling] = useState(false);
